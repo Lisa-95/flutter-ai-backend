@@ -3,7 +3,7 @@ import requests
 
 app = Flask(__name__)
 
-# Modello gratuito su Hugging Face (no chiavi API)
+# Modello gratuito AI ospitato su Hugging Face (senza chiavi)
 API_URL = "https://huggingface.co/chat/"
 
 @app.route("/chat", methods=["POST"])
@@ -16,7 +16,7 @@ def chat():
         if not message:
             return jsonify({"error": "Messaggio mancante"}), 400
 
-        # Costruiamo la conversazione base
+        # Formato compatibile con endpoint /chat di Hugging Face
         payload = {
             "inputs": f"[INST] {message} [/INST]",
             "parameters": {
@@ -28,8 +28,8 @@ def chat():
 
         headers = {"Content-Type": "application/json"}
         response = requests.post(API_URL, json=payload, headers=headers, timeout=30)
-        print("🌐 API HuggingFace status:", response.status_code)
-        print("📄 Risposta:", response.text)
+        print("🌐 Stato risposta:", response.status_code)
+        print("📄 Contenuto:", response.text)
 
         if response.status_code == 200:
             data = response.json()
@@ -47,4 +47,3 @@ def chat():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
-
