@@ -2,7 +2,9 @@ from flask import Flask, request, jsonify
 import requests
 
 app = Flask(__name__)
-API_URL = "https://api.danny-avila.com/chat/completions"
+
+# Modello gratuito su Hugging Face (no chiavi API)
+API_URL = "https://huggingface.co/chat/"
 
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -14,27 +16,30 @@ def chat():
         if not message:
             return jsonify({"error": "Messaggio mancante"}), 400
 
+        # Costruiamo la conversazione base
         payload = {
-            "model": "mistral",
-            "messages": [{"role": "user", "content": message}]
+            "inputs": f"[INST] {message} [/INST]",
+            "parameters": {
+                "do_sample": True,
+                "max_new_tokens": 150,
+                "temperature": 0.7
+            }
         }
 
-        print("🚀 Inviando payload all'API esterna...")
-        resp = requests.post(API_URL, json=payload, timeout=30)
-        print("🌐 Stato risposta API esterna:", resp.status_code)
-        print("📄 Contenuto risposta API:", resp.text)
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(API_URL, json=payload, headers=headers, timeout=30)
+        print("🌐 API HuggingFace status:", response.status_code)
+        print("📄 Risposta:", response.text)
 
-        resp.raise_for_status()
-        response_json = resp.json()
-
-        if 'choices' in response_json:
-            ai_reply = response_json['choices'][0]['message']['content']
+        if response.status_code == 200:
+            data = response.json()
+            if isinstance(data, list) and len(data) > 0:
+                ai_reply = data[0].get("generated_text", "Nessuna risposta generata.")
+            else:
+                ai_reply = "Risposta vuota dal modello."
             return jsonify({"response": ai_reply})
         else:
-            return jsonify({
-                "error": "Risposta inattesa dal modello AI",
-                "dettagli": response_json
-            }), 502
+            return jsonify({"error": f"Errore dal modello AI: {response.status_code}"}), 502
 
     except Exception as e:
         print("❌ Errore:", str(e))
@@ -42,3 +47,4 @@ def chat():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
